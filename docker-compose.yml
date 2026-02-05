@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: pair
+      POSTGRES_PASSWORD: pair
+      POSTGRES_DB: pair_takehome
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./db:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pair -d pair_takehome"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  # Optional: a lightweight DB browser at http://localhost:8081
+  adminer:
+    image: adminer:4
+    ports:
+      - "8081:8080"
+    depends_on:
+      db:
+        condition: service_healthy

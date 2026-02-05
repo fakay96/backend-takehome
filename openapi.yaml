@@ -1,0 +1,171 @@
+openapi: 3.0.3
+info:
+  title: PAIR Take-home - Content assembly + progress
+  version: 1.0.0
+servers:
+  - url: http://localhost:8000
+paths:
+  /tenants/{tenant_id}/users/{user_id}/lessons/{lesson_id}:
+    get:
+      summary: Get assembled lesson content + user progress
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: user_id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: lesson_id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Lesson with ordered blocks, selected variants, and progress.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LessonResponse"
+        "404":
+          description: Tenant/user/lesson not found (or not related).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /tenants/{tenant_id}/users/{user_id}/lessons/{lesson_id}/progress:
+    put:
+      summary: Upsert progress for a single block (idempotent)
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: user_id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: lesson_id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProgressUpsertRequest"
+      responses:
+        "200":
+          description: Updated progress summary (and the stored status for that block).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgressUpsertResponse"
+        "400":
+          description: Invalid payload, or block_id not in lesson.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Tenant/user/lesson not found (or not related).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+components:
+  schemas:
+    LessonResponse:
+      type: object
+      required: [lesson, blocks, progress_summary]
+      properties:
+        lesson:
+          type: object
+          required: [id, slug, title]
+          properties:
+            id: { type: integer }
+            slug: { type: string }
+            title: { type: string }
+        blocks:
+          type: array
+          items:
+            $ref: "#/components/schemas/LessonBlock"
+        progress_summary:
+          $ref: "#/components/schemas/ProgressSummary"
+
+    LessonBlock:
+      type: object
+      required: [id, type, position, variant]
+      properties:
+        id: { type: integer }
+        type: { type: string }
+        position: { type: integer }
+        variant:
+          $ref: "#/components/schemas/Variant"
+        user_progress:
+          nullable: true
+          oneOf:
+            - type: string
+              enum: [seen, completed]
+            - type: "null"
+
+    Variant:
+      type: object
+      required: [id, tenant_id, data]
+      properties:
+        id: { type: integer }
+        tenant_id:
+          nullable: true
+          oneOf:
+            - type: integer
+            - type: "null"
+        data:
+          type: object
+          additionalProperties: true
+
+    ProgressUpsertRequest:
+      type: object
+      required: [block_id, status]
+      properties:
+        block_id: { type: integer }
+        status:
+          type: string
+          enum: [seen, completed]
+
+    ProgressUpsertResponse:
+      type: object
+      required: [stored_status, progress_summary]
+      properties:
+        stored_status:
+          type: string
+          enum: [seen, completed]
+        progress_summary:
+          $ref: "#/components/schemas/ProgressSummary"
+
+    ProgressSummary:
+      type: object
+      required: [total_blocks, seen_blocks, completed_blocks, last_seen_block_id, completed]
+      properties:
+        total_blocks: { type: integer }
+        seen_blocks: { type: integer }
+        completed_blocks: { type: integer }
+        last_seen_block_id:
+          nullable: true
+          oneOf:
+            - type: integer
+            - type: "null"
+        completed: { type: boolean }
+
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
