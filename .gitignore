@@ -1,2 +1,7 @@
 # Zone identifiers
 **/*:Zone.Identifier
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
