@@ -1,5 +1,34 @@
 # Notes
 
+## How to run
+
+```bash
+docker compose up -d
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python manage.py runserver 8000
+```
+
+API is at `http://localhost:8000`. To verify:
+
+```bash
+python3 scripts/verify.py --base-url http://localhost:8000
+```
+
+To run unit and integration tests (47 tests, transaction-safe — no DB reset needed):
+
+```bash
+python manage.py test lessons.tests -v 2 --keepdb
+```
+
+To run functional tests against the live server (requires server running and clean seed data):
+
+```bash
+python3 scripts/verify.py --base-url http://localhost:8000
+bash scripts/curl_examples.sh
+```
+
 ## Trade-offs
 
 - Used Django's LocMemCache for lesson structure caching — fine for single-process dev, would need Redis for multi-worker production.
